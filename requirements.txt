@@ -4,5 +4,5 @@ pandas>=2.1
 openpyxl>=3.1.2
 plotly>=5.20
 
-# Note: sqlite3 is part of the Python standard library (no need to list it).
-# All file I/O uses pathlib + stdlib (no extra packages required).
+# Supabase (replaces SQLite)
+supabase>=2.3

@@ -25,6 +25,12 @@ from utils.constants import (
 )
 from utils.i18n import t
 
+# Import Supabase client (centralized in db layer)
+try:
+    from db.database import get_supabase
+except Exception:
+    get_supabase = None  # will fail gracefully if called without proper setup
+
 # ------------------------------------------------------------------
 # Date & Overdue
 # ------------------------------------------------------------------
@@ -71,22 +77,8 @@ def get_platforms() -> list[str]:
 
 
 # ------------------------------------------------------------------
-# File / Attachment helpers (local storage) - robust path for cloud deploys
+# File / Attachment helpers - now using Supabase Storage
 # ------------------------------------------------------------------
-def _get_project_root() -> Path:
-    """Return the project root reliably (same logic as db/database.py)."""
-    # helpers.py is in utils/, so parent.parent = project root
-    return Path(__file__).resolve().parent.parent
-
-UPLOADS_ROOT = _get_project_root() / "data" / "uploads"
-
-
-def ensure_upload_dir(supplier_id: int) -> Path:
-    d = UPLOADS_ROOT / str(supplier_id)
-    d.mkdir(parents=True, exist_ok=True)
-    return d
-
-
 def safe_filename(name: str) -> str:
     """Sanitize filename, keep extension."""
     name = name.strip().replace(" ", "_")
@@ -100,53 +92,99 @@ def safe_filename(name: str) -> str:
     return name
 
 
-def save_uploaded_file(uploaded_file, supplier_id: int) -> Tuple[str, str]:
+def upload_file_to_storage(uploaded_file, supplier_id: int) -> Tuple[str, str]:
     """
-    Save Streamlit UploadedFile to disk.
-    Returns (original_filename, stored_relative_path)
+    Upload Streamlit UploadedFile to Supabase Storage bucket "uploads".
+    Path format: "{supplier_id}/{timestamp}_{safe_name}"
+    Returns (original_filename, stored_storage_path)
     """
-    ensure_upload_dir(supplier_id)
+    if get_supabase is None:
+        raise RuntimeError("Supabase client not available")
+
+    sb = get_supabase()
     original = uploaded_file.name
     safe = safe_filename(original)
     timestamp = int(time.time() * 1000)
     stem, ext = os.path.splitext(safe)
     stored_name = f"{timestamp}_{stem}{ext}"
-    stored_path = UPLOADS_ROOT / str(supplier_id) / stored_name
+    storage_path = f"{supplier_id}/{stored_name}"
 
-    # Write bytes
-    with open(stored_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
+    # Upload bytes
+    file_bytes = uploaded_file.getbuffer()
+    content_type = "application/octet-stream"
+    if ext.lower() in [".pdf"]:
+        content_type = "application/pdf"
+    elif ext.lower() in [".png", ".jpg", ".jpeg"]:
+        content_type = "image/jpeg" if ext.lower() in [".jpg", ".jpeg"] else "image/png"
 
-    # Return relative path for DB (portable)
-    rel_path = str(stored_path.relative_to(Path("data")))
-    return original, rel_path
+    sb.storage.from_("uploads").upload(
+        path=storage_path,
+        file=file_bytes,
+        file_options={"content-type": content_type, "upsert": "true"},
+    )
+
+    return original, storage_path
+
+
+# Backwards-compatible aliases for existing call sites
+save_uploaded_file = upload_file_to_storage
+
+
+def get_file_bytes(stored_path: str) -> bytes:
+    """Download file bytes from Supabase Storage (replaces local get_full_path + open)."""
+    if get_supabase is None:
+        raise RuntimeError("Supabase client not available")
+    sb = get_supabase()
+    try:
+        return sb.storage.from_("uploads").download(stored_path)
+    except Exception as e:
+        raise FileNotFoundError(f"Could not download {stored_path} from Supabase Storage: {e}")
 
 
 def get_full_path(stored_path: str) -> Path:
-    """Convert relative stored_path (e.g. uploads/5/xxx.pdf) to absolute Path."""
-    return Path("data") / stored_path
+    """Deprecated for Supabase. Kept for compatibility but will raise."""
+    raise NotImplementedError(
+        "Local file paths are no longer used. Use get_file_bytes(stored_path) instead "
+        "for downloads, or access storage directly."
+    )
 
 
-def delete_uploaded_file(stored_path: str) -> bool:
-    """Delete physical file. Return True on success or if file didn't exist."""
+def delete_file_from_storage(stored_path: str) -> bool:
+    """Delete a single file from Supabase Storage."""
+    if get_supabase is None:
+        return False
+    sb = get_supabase()
     try:
-        p = get_full_path(stored_path)
-        if p.exists():
-            p.unlink()
-        # Try to remove empty parent dir
-        parent = p.parent
-        if parent.exists() and not any(parent.iterdir()):
-            parent.rmdir()
+        sb.storage.from_("uploads").remove([stored_path])
         return True
     except Exception:
         return False
 
 
+def delete_uploaded_file(stored_path: str) -> bool:
+    """Alias for storage delete (back-compat with UI code)."""
+    return delete_file_from_storage(stored_path)
+
+
+def delete_all_files_for_supplier(supplier_id: int) -> None:
+    """Delete all files for a supplier from Supabase Storage (lists under prefix)."""
+    if get_supabase is None:
+        return
+    sb = get_supabase()
+    try:
+        prefix = f"{supplier_id}/"
+        files = sb.storage.from_("uploads").list(prefix)
+        paths = [f"{prefix}{f['name']}" for f in files if f.get("name")]
+        if paths:
+            sb.storage.from_("uploads").remove(paths)
+    except Exception as e:
+        # non-fatal
+        print(f"Warning: failed to delete all storage files for supplier {supplier_id}: {e}")
+
+
 def delete_all_attachments_for_supplier(supplier_id: int) -> None:
-    """Delete entire upload folder for a supplier (called on supplier delete)."""
-    d = UPLOADS_ROOT / str(supplier_id)
-    if d.exists():
-        shutil.rmtree(d, ignore_errors=True)
+    """Back-compat alias."""
+    delete_all_files_for_supplier(supplier_id)
 
 
 # ------------------------------------------------------------------

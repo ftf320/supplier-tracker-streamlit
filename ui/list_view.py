@@ -23,6 +23,7 @@ from utils.helpers import (
     format_date,
     get_export_filename,
     export_suppliers_to_excel,
+    delete_all_attachments_for_supplier,  # now handles Supabase Storage too
 )
 from utils.i18n import t, get_lang
 from utils.constants import STATUSES, COUNTRIES
@@ -304,7 +305,7 @@ def render_supplier_list(lang: str | None = None, current_actor: str | None = No
                 with dc1:
                     if st.button("✅ 确认删除", type="primary", key="confirm_delete"):
                         # Clean files
-                        from utils.helpers import delete_all_attachments_for_supplier
+                        from utils.helpers import delete_all_attachments_for_supplier  # Supabase Storage aware
                         delete_all_attachments_for_supplier(selected_id)
                         delete_supplier(selected_id)
                         st.session_state.pop("delete_target", None)

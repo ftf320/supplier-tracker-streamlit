@@ -34,8 +34,8 @@ from ui.components import (
 )
 from utils.constants import STATUSES, get_status_label
 from utils.helpers import (
-    save_uploaded_file,
-    get_full_path,
+    upload_file_to_storage as save_uploaded_file,  # Supabase Storage
+    get_file_bytes,
     delete_uploaded_file,
     is_overdue,
     format_date,
@@ -213,18 +213,17 @@ def _render_files_section(supplier_id: int, lang: str, current_actor: str) -> No
                 by = att.get("uploaded_by") or "—"
                 st.caption(f"{uploaded}  ·  {t('uploaded_by', lang)}: {by}")
             with a2:
-                full_p = get_full_path(att["stored_path"])
-                if full_p.exists():
-                    with open(full_p, "rb") as f:
-                        data = f.read()
+                # Download from Supabase Storage
+                try:
+                    file_bytes = get_file_bytes(att["stored_path"])
                     st.download_button(
                         t("download", lang),
-                        data=data,
+                        data=file_bytes,
                         file_name=att["original_filename"],
                         key=f"dl_att_{att['id']}",
                         use_container_width=True,
                     )
-                else:
+                except Exception:
                     st.caption(t("file_not_found", lang))
             with a3:
                 if st.button(t("delete_attachment", lang), key=f"del_att_{att['id']}", use_container_width=True):

@@ -25,8 +25,8 @@ from ui.components import (
 from utils.constants import STATUSES, PLATFORMS, ACTORS
 from utils.helpers import (
     format_date,
-    save_uploaded_file,
-    get_full_path,
+    upload_file_to_storage as save_uploaded_file,  # Supabase Storage version
+    get_file_bytes,
     delete_uploaded_file,
     is_overdue,
 )
@@ -290,11 +290,9 @@ def _edit_dialog_impl(supplier_id: int, lang: str, current_actor: str | None = N
                 st.markdown(f"📎 **{att['original_filename']}**")
                 st.caption(f"上传于 {att.get('uploaded_at','')[:16]}")
             with a_col2:
-                # Download button
-                full_p = get_full_path(att["stored_path"])
-                if full_p.exists():
-                    with open(full_p, "rb") as f:
-                        file_bytes = f.read()
+                # Download button - now from Supabase Storage
+                try:
+                    file_bytes = get_file_bytes(att["stored_path"])
                     st.download_button(
                         t("download", lang),
                         data=file_bytes,
@@ -302,7 +300,7 @@ def _edit_dialog_impl(supplier_id: int, lang: str, current_actor: str | None = N
                         key=f"dl_{att['id']}",
                         use_container_width=True,
                     )
-                else:
+                except Exception:
                     st.caption(t("file_not_found", lang))
             with a_col3:
                 if st.button(t("delete_attachment", lang), key=f"del_att_{att['id']}", use_container_width=True):
