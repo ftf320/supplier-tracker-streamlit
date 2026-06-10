@@ -197,6 +197,15 @@ def sidebar() -> None:
 
 
 def main() -> None:
+    # === 密码登录验证（放在最前面） ===
+    if "authenticated" not in st.session_state:
+        st.session_state["authenticated"] = False
+
+    if not st.session_state.get("authenticated", False):
+        _show_login()
+        return  # 未登录时不执行任何后续 UI 代码
+
+    # === 以下为原有功能（只有登录成功后才会执行） ===
     sidebar()
     lang = get_lang()
     current_actor = st.session_state.get("current_actor", "李娜 - 采购经理")
@@ -231,6 +240,35 @@ def main() -> None:
             - 建议定期使用「导出当前结果」备份关键数据。
             """
         )
+
+
+def _show_login() -> None:
+    """显示简洁的密码登录界面（未登录时只显示此内容）。"""
+    st.title("供应商注册追踪系统")
+    st.markdown("#### 请输入访问密码以继续")
+
+    with st.form("login_form", clear_on_submit=False):
+        password = st.text_input(
+            "访问密码",
+            type="password",
+            placeholder="请输入密码",
+            key="login_password",
+        )
+        submitted = st.form_submit_button("登录", type="primary", use_container_width=True)
+
+    if submitted:
+        try:
+            correct_password = st.secrets["APP_PASSWORD"]
+        except (KeyError, FileNotFoundError):
+            st.error("系统未配置访问密码（APP_PASSWORD）。请联系管理员设置 .streamlit/secrets.toml 或云端 Secrets。")
+            return
+
+        if password == correct_password:
+            st.session_state["authenticated"] = True
+            st.success("登录成功，正在进入系统...")
+            st.rerun()
+        else:
+            st.error("密码错误，请重新输入。")
 
 
 if __name__ == "__main__":
