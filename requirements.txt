@@ -1,0 +1,8 @@
+# Core Streamlit + data processing
+streamlit>=1.40
+pandas>=2.1
+openpyxl>=3.1.2
+plotly>=5.20
+
+# Note: sqlite3 is part of the Python standard library (no need to list it).
+# All file I/O uses pathlib + stdlib (no extra packages required).
