@@ -109,6 +109,23 @@ def _add_dialog_impl(lang: str, current_actor: str | None = None) -> None:
             help=t("owner_placeholder", lang),
         )
 
+        # New fields
+        cnood_entity = st.text_input(
+            t("cnood_entity", lang),
+            key="add_cnood_entity",
+        )
+
+        registration_category = st.text_area(
+            t("registration_category", lang),
+            height=120,
+            key="add_registration_category",
+        )
+
+        supplier_vendor_type = st.text_input(
+            t("supplier_vendor_type", lang),
+            key="add_supplier_vendor_type",
+        )
+
         notes = st.text_area(t("notes", lang), height=90, key="add_notes")
 
         # For new, attachments after create (show hint)
@@ -133,6 +150,9 @@ def _add_dialog_impl(lang: str, current_actor: str | None = None) -> None:
             "owner": owner.strip() if owner else actor,
             "contact_email": email.strip() if email else None,
             "contact_phone": phone.strip() if phone else None,
+            "cnood_entity": cnood_entity.strip() if cnood_entity else None,
+            "registration_category": registration_category.strip() if registration_category else None,
+            "supplier_vendor_type": supplier_vendor_type.strip() if supplier_vendor_type else None,
             "notes": notes.strip() if notes else None,
         }
 
@@ -228,6 +248,26 @@ def _edit_dialog_impl(supplier_id: int, lang: str, current_actor: str | None = N
             key=f"edit_owner_{supplier_id}",
         )
 
+        # New fields
+        cnood_entity = st.text_input(
+            t("cnood_entity", lang),
+            value=supplier.get("cnood_entity") or "",
+            key=f"edit_cnood_entity_{supplier_id}",
+        )
+
+        registration_category = st.text_area(
+            t("registration_category", lang),
+            value=supplier.get("registration_category") or "",
+            height=120,
+            key=f"edit_registration_category_{supplier_id}",
+        )
+
+        supplier_vendor_type = st.text_input(
+            t("supplier_vendor_type", lang),
+            value=supplier.get("supplier_vendor_type") or "",
+            key=f"edit_supplier_vendor_type_{supplier_id}",
+        )
+
         notes = st.text_area(
             t("notes", lang),
             value=supplier.get("notes") or "",
@@ -264,6 +304,9 @@ def _edit_dialog_impl(supplier_id: int, lang: str, current_actor: str | None = N
             "owner": owner_val.strip() if owner_val else None,
             "contact_email": email.strip() if email else None,
             "contact_phone": phone.strip() if phone else None,
+            "cnood_entity": cnood_entity.strip() if cnood_entity else None,
+            "registration_category": registration_category.strip() if registration_category else None,
+            "supplier_vendor_type": supplier_vendor_type.strip() if supplier_vendor_type else None,
             "notes": notes.strip() if notes else None,
         }
 

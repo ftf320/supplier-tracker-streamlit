@@ -38,6 +38,11 @@ def init_db(seed_if_empty: bool = False) -> None:
 # No local SQLite schema or connection needed anymore.
 # Tables are managed in Supabase Postgres.
 # See the comment above get_supabase_client() for recommended table creation SQL.
+#
+# To add the new fields, run in Supabase SQL Editor:
+# ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS cnood_entity TEXT;
+# ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS registration_category TEXT;
+# ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS supplier_vendor_type TEXT;
 
 
 # ------------------------------------------------------------------
@@ -97,6 +102,7 @@ def get_suppliers_df() -> pd.DataFrame:
                 "id", "company_name_cn", "company_name_en", "country", "platform",
                 "status", "submission_date", "deadline", "contact_name", "owner",
                 "contact_email", "contact_phone", "notes", "created_at", "updated_at",
+                "cnood_entity", "registration_category", "supplier_vendor_type",
             ]
         )
     return pd.DataFrame(suppliers)
@@ -120,6 +126,9 @@ def add_supplier(data: Dict[str, Any]) -> int:
         "contact_email": data.get("contact_email"),
         "contact_phone": data.get("contact_phone"),
         "notes": data.get("notes"),
+        "cnood_entity": data.get("cnood_entity"),
+        "registration_category": data.get("registration_category"),
+        "supplier_vendor_type": data.get("supplier_vendor_type"),
         "created_at": now,
         "updated_at": now,
     }
@@ -163,6 +172,9 @@ def update_supplier(supplier_id: int, data: Dict[str, Any], status_note: Optiona
         "contact_email": data.get("contact_email"),
         "contact_phone": data.get("contact_phone"),
         "notes": data.get("notes"),
+        "cnood_entity": data.get("cnood_entity"),
+        "registration_category": data.get("registration_category"),
+        "supplier_vendor_type": data.get("supplier_vendor_type"),
         "updated_at": datetime.utcnow().isoformat(),
     }
 

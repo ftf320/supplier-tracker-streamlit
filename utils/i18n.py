@@ -172,6 +172,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "country_label": "国家 *",
         "owner_label": "内部负责人",
         "owner_placeholder": "默认使用当前操作人，可修改",
+        "cnood_entity": "CNOOD Entity",
+        "registration_category": "注册品类",
+        "supplier_vendor_type": "注册的 supplier/vendor 类型",
 
         # Step labels (for stepper UI)
         "step_not_started": "未开始",
@@ -344,6 +347,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "country_label": "Country *",
         "owner_label": "Internal Owner",
         "owner_placeholder": "Defaults to current actor (editable)",
+        "cnood_entity": "CNOOD Entity",
+        "registration_category": "Registration Category",
+        "supplier_vendor_type": "Supplier/Vendor Type",
 
         # Step labels
         "step_not_started": "Not Started",

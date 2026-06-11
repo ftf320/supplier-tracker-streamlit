@@ -387,6 +387,11 @@ def _detail_dialog_impl(supplier_id: int, current_actor: str, lang: str) -> None
 
     render_overdue_warning(supplier.get("deadline"), supplier.get("status", ""), lang)
 
+    # New fields display
+    st.markdown("**CNOOD Entity:** " + (supplier.get("cnood_entity") or "—"))
+    st.markdown("**注册品类:** " + (supplier.get("registration_category") or "—"))
+    st.markdown("**注册的 supplier/vendor 类型:** " + (supplier.get("supplier_vendor_type") or "—"))
+
     st.markdown("---")
 
     # Stepper

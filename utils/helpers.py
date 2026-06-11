@@ -214,7 +214,8 @@ def export_suppliers_to_excel(
     cols_order = [
         "id", "company_name_cn", "company_name_en", "country", "platform", "status",
         "submission_date", "deadline", "contact_name", "owner", "contact_email",
-        "contact_phone", "notes", "created_at", "updated_at"
+        "contact_phone", "notes", "cnood_entity", "registration_category", "supplier_vendor_type",
+        "created_at", "updated_at"
     ]
     existing = [c for c in cols_order if c in export_df.columns]
     export_df = export_df[existing]
@@ -234,6 +235,9 @@ def export_suppliers_to_excel(
         "contact_email": "Email",
         "contact_phone": "Phone",
         "notes": t("notes", lang),
+        "cnood_entity": t("cnood_entity", lang),
+        "registration_category": t("registration_category", lang),
+        "supplier_vendor_type": t("supplier_vendor_type", lang),
         "created_at": "Created",
         "updated_at": "Updated",
     }

@@ -35,6 +35,9 @@ def _apply_filters(
     platforms: list[str],
     statuses: list[str],
     countries: list[str],
+    cnood_entities: list[str],
+    registration_categories: list[str],
+    supplier_vendor_types: list[str],
     only_overdue: bool,
 ) -> pd.DataFrame:
     if df is None or df.empty:
@@ -52,6 +55,9 @@ def _apply_filters(
             | filtered.get("owner", pd.Series([""] * len(filtered))).astype(str).str.lower().str.contains(q, na=False)
             | filtered["notes"].astype(str).str.lower().str.contains(q, na=False)
             | filtered.get("country", pd.Series([""] * len(filtered))).astype(str).str.lower().str.contains(q, na=False)
+            | filtered.get("cnood_entity", pd.Series([""] * len(filtered))).astype(str).str.lower().str.contains(q, na=False)
+            | filtered.get("registration_category", pd.Series([""] * len(filtered))).astype(str).str.lower().str.contains(q, na=False)
+            | filtered.get("supplier_vendor_type", pd.Series([""] * len(filtered))).astype(str).str.lower().str.contains(q, na=False)
         )
         filtered = filtered[mask]
 
@@ -66,6 +72,16 @@ def _apply_filters(
     # Country multi-select
     if countries:
         filtered = filtered[filtered["country"].isin(countries)]
+
+    # New fields multi-select filters
+    if cnood_entities:
+        filtered = filtered[filtered.get("cnood_entity", "").fillna("").isin(cnood_entities)]
+
+    if registration_categories:
+        filtered = filtered[filtered.get("registration_category", "").fillna("").isin(registration_categories)]
+
+    if supplier_vendor_types:
+        filtered = filtered[filtered.get("supplier_vendor_type", "").fillna("").isin(supplier_vendor_types)]
 
     # Only overdue
     if only_overdue:
@@ -82,7 +98,7 @@ def _prepare_display_df(df: pd.DataFrame, lang: str) -> pd.DataFrame:
     Company name is now a single unified field (merged input).
     """
     if df.empty:
-        return pd.DataFrame(columns=["ID", "公司名称", "国家", "平台", "状态", "截止日期", "负责人", "逾期"])
+        return pd.DataFrame(columns=["ID", "公司名称", "国家", "平台", "状态", "截止日期", "负责人", "CNOOD Entity", "注册品类", "注册的 supplier/vendor 类型", "逾期"])
 
     disp = pd.DataFrame()
     disp["ID"] = df["id"]
@@ -101,6 +117,11 @@ def _prepare_display_df(df: pd.DataFrame, lang: str) -> pd.DataFrame:
 
     disp["负责人"] = df.get("owner", df.get("contact_name", "")).fillna("")
 
+    # New fields
+    disp["CNOOD Entity"] = df.get("cnood_entity", "").fillna("")
+    disp["注册品类"] = df.get("registration_category", "").fillna("")
+    disp["注册的 supplier/vendor 类型"] = df.get("supplier_vendor_type", "").fillna("")
+
     # Overdue flag
     disp["逾期"] = df.apply(
         lambda r: "⚠️" if is_overdue(r.get("deadline"), r.get("status", "")) else "",
@@ -108,7 +129,7 @@ def _prepare_display_df(df: pd.DataFrame, lang: str) -> pd.DataFrame:
     )
 
     # Reorder for clarity
-    cols = ["ID", "公司名称", "国家", "平台", "状态", "截止日期", "负责人", "逾期"]
+    cols = ["ID", "公司名称", "国家", "平台", "状态", "截止日期", "负责人", "CNOOD Entity", "注册品类", "注册的 supplier/vendor 类型", "逾期"]
     return disp[[c for c in cols if c in disp.columns]]
 
 
@@ -169,13 +190,45 @@ def render_supplier_list(lang: str | None = None, current_actor: str | None = No
 
         with f6:
             if st.button(t("clear_filters", lang), use_container_width=True, key="clear_btn"):
-                for k in ["list_search", "list_platforms", "list_statuses", "list_countries", "list_only_overdue"]:
+                for k in ["list_search", "list_platforms", "list_statuses", "list_countries", "list_only_overdue",
+                          "list_cnood", "list_reg_cat", "list_vtype"]:
                     if k in st.session_state:
                         del st.session_state[k]
                 st.rerun()
 
+    # --- Additional filters for new fields (CNOOD Entity, 注册品类, supplier/vendor type) ---
+    with st.container():
+        nf1, nf2, nf3 = st.columns(3)
+        with nf1:
+            all_cnood = sorted(full_df.get("cnood_entity", pd.Series(dtype=str)).dropna().unique().tolist()) if not full_df.empty else []
+            cnood_entities = st.multiselect(
+                "CNOOD Entity",
+                options=all_cnood,
+                default=[],
+                key="list_cnood",
+            )
+        with nf2:
+            all_reg = sorted(full_df.get("registration_category", pd.Series(dtype=str)).dropna().unique().tolist()) if not full_df.empty else []
+            registration_categories = st.multiselect(
+                "注册品类",
+                options=all_reg,
+                default=[],
+                key="list_reg_cat",
+            )
+        with nf3:
+            all_vtype = sorted(full_df.get("supplier_vendor_type", pd.Series(dtype=str)).dropna().unique().tolist()) if not full_df.empty else []
+            supplier_vendor_types = st.multiselect(
+                "注册的 supplier/vendor 类型",
+                options=all_vtype,
+                default=[],
+                key="list_vtype",
+            )
+
     # Apply filters (keep a "source" copy with original full_df rows for export)
-    filtered_source = _apply_filters(full_df, search or "", platforms or [], statuses or [], countries or [], only_overdue)
+    filtered_source = _apply_filters(
+        full_df, search or "", platforms or [], statuses or [], countries or [],
+        cnood_entities or [], registration_categories or [], supplier_vendor_types or [], only_overdue
+    )
     filtered_df = _prepare_display_df(filtered_source, lang)
 
     # Action buttons row (removed old demo reseed button per requirement to disable auto/manual demo seeding)
