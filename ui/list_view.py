@@ -162,7 +162,7 @@ def _prepare_display_df(df: pd.DataFrame, lang: str) -> pd.DataFrame:
     )
 
     # Reorder for clarity
-    # Note: 公司名称 and 国家 are placed early so frozen=True in column_config works well
+    # Note: 公司名称 and 国家 are placed early so pinned=True in column_config works well
     cols = ["ID", "公司名称", "国家", "平台", "状态", "截止日期", "负责人", "CNOOD Entity", "注册品类", "注册的 supplier/vendor 类型", "备注", "逾期"]
     return disp[[c for c in cols if c in disp.columns]]
 
@@ -315,17 +315,17 @@ def render_supplier_list(lang: str | None = None, current_actor: str | None = No
         selection_mode="single-row",
         key="supplier_table",
         column_config={
-            # Frozen columns: 公司名称 and 国家 always stay visible on the left when scrolling
+            # Pinned columns: 公司名称 and 国家 always stay visible on the left when scrolling
             "ID": st.column_config.NumberColumn(width="small"),
             "公司名称": st.column_config.TextColumn(
                 "公司名称",
                 width="medium",
-                frozen=True,  # Freeze / pin to left
+                pinned=True,  # Freeze / pin to left
             ),
             "国家": st.column_config.TextColumn(
                 "国家",
                 width="small",
-                frozen=True,  # Freeze / pin to left
+                pinned=True,  # Freeze / pin to left
             ),
             "平台": st.column_config.TextColumn(width="small"),
             "状态": st.column_config.TextColumn(
