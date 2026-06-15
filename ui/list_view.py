@@ -98,7 +98,7 @@ def _prepare_display_df(df: pd.DataFrame, lang: str) -> pd.DataFrame:
     Company name is now a single unified field (merged input).
     """
     if df.empty:
-        return pd.DataFrame(columns=["ID", "公司名称", "国家", "平台", "状态", "截止日期", "负责人", "CNOOD Entity", "注册品类", "注册的 supplier/vendor 类型", "逾期"])
+        return pd.DataFrame(columns=["ID", "公司名称", "国家", "平台", "状态", "截止日期", "负责人", "CNOOD Entity", "注册品类", "注册的 supplier/vendor 类型", "备注", "逾期"])
 
     disp = pd.DataFrame()
     disp["ID"] = df["id"]
@@ -122,14 +122,19 @@ def _prepare_display_df(df: pd.DataFrame, lang: str) -> pd.DataFrame:
     disp["注册品类"] = df.get("registration_category", "").fillna("")
     disp["注册的 supplier/vendor 类型"] = df.get("supplier_vendor_type", "").fillna("")
 
+    # 备注 (notes) - truncate long content for table readability.
+    # Full text is still searchable and will show on cell hover in Streamlit dataframe.
+    notes = df.get("notes", pd.Series([""] * len(df))).fillna("").astype(str)
+    disp["备注"] = notes.apply(lambda x: (x[:35] + "...") if len(x) > 35 else x)
+
     # Overdue flag
     disp["逾期"] = df.apply(
         lambda r: "⚠️" if is_overdue(r.get("deadline"), r.get("status", "")) else "",
         axis=1,
     )
 
-    # Reorder for clarity
-    cols = ["ID", "公司名称", "国家", "平台", "状态", "截止日期", "负责人", "CNOOD Entity", "注册品类", "注册的 supplier/vendor 类型", "逾期"]
+    # Reorder for clarity (备注 placed before 逾期 flag)
+    cols = ["ID", "公司名称", "国家", "平台", "状态", "截止日期", "负责人", "CNOOD Entity", "注册品类", "注册的 supplier/vendor 类型", "备注", "逾期"]
     return disp[[c for c in cols if c in disp.columns]]
 
 
@@ -283,6 +288,11 @@ def render_supplier_list(lang: str | None = None, current_actor: str | None = No
         column_config={
             "ID": st.column_config.NumberColumn(width="small"),
             "截止日期": st.column_config.TextColumn(width="medium"),
+            "备注": st.column_config.TextColumn(
+                "备注",
+                width="medium",
+                help="备注内容较长时会自动截断显示（最多35字），将鼠标悬停在单元格上可查看完整内容",
+            ),
             "逾期": st.column_config.TextColumn(width="small"),
         },
     )
