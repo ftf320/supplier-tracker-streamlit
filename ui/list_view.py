@@ -111,7 +111,6 @@ def _prepare_display_df(df: pd.DataFrame, lang: str) -> pd.DataFrame:
 
     disp["国家"] = df.get("country", "").fillna("")
     disp["平台"] = df["platform"]
-    disp["状态"] = df["status"].apply(lambda s: get_status_display(s, lang))
     disp["提交日期"] = df["submission_date"].apply(lambda d: format_date(d))
     disp["截止日期"] = df["deadline"].apply(lambda d: format_date(d))
 
@@ -122,18 +121,48 @@ def _prepare_display_df(df: pd.DataFrame, lang: str) -> pd.DataFrame:
     disp["注册品类"] = df.get("registration_category", "").fillna("")
     disp["注册的 supplier/vendor 类型"] = df.get("supplier_vendor_type", "").fillna("")
 
-    # 备注 (notes) - truncate long content for table readability.
-    # Full text is still searchable and will show on cell hover in Streamlit dataframe.
-    notes = df.get("notes", pd.Series([""] * len(df))).fillna("").astype(str)
-    disp["备注"] = notes.apply(lambda x: (x[:35] + "...") if len(x) > 35 else x)
+    # 备注 (notes) optimization:
+    # - Show only first 25 characters + "..." 
+    # - Empty notes display as "—"
+    # - Full content will be available via tooltip / cell hover (aided by column_config help)
+    notes = df.get("notes", pd.Series([""] * len(df))).fillna("").astype(str).str.strip()
+    def _format_remarks(n: str) -> str:
+        if not n:
+            return "—"
+        return n[:25] + "..." if len(n) > 25 else n
+    disp["备注"] = notes.apply(_format_remarks)
 
-    # Overdue flag
+    # Status with semantic colors (using emojis for visual distinction via column_config display)
+    # + Overdue red highlight (prepended red indicator)
+    def _format_status_with_colors(row) -> str:
+        status = row.get("status", "")
+        base_display = get_status_display(status, lang)
+
+        # Overdue takes precedence with strong red highlight
+        if is_overdue(row.get("deadline"), status):
+            return "🔴 " + base_display  # Red for overdue
+
+        s_lower = status.lower()
+        # Specific color semantics as requested
+        if any(k in s_lower for k in ["in progress", "进行中", "审核中"]):
+            return "🔵 " + status  # Blue for in progress
+        elif any(k in s_lower for k in ["approved", "已批准"]):
+            return "🟢 " + status  # Green for approved
+        elif any(k in s_lower for k in ["documents submitted", "资料已提交", "已提交"]):
+            return "🟠 " + status  # Orange for documents submitted
+        # Other statuses keep the original emoji coloring from get_status_display
+        return base_display
+
+    disp["状态"] = df.apply(_format_status_with_colors, axis=1)
+
+    # Overdue flag (kept for quick visual scan, now complemented by red status prefix)
     disp["逾期"] = df.apply(
-        lambda r: "⚠️" if is_overdue(r.get("deadline"), r.get("status", "")) else "",
+        lambda r: "🔴 逾期" if is_overdue(r.get("deadline"), r.get("status", "")) else "",
         axis=1,
     )
 
-    # Reorder for clarity (备注 placed before 逾期 flag)
+    # Reorder for clarity
+    # Note: 公司名称 and 国家 are placed early so frozen=True in column_config works well
     cols = ["ID", "公司名称", "国家", "平台", "状态", "截止日期", "负责人", "CNOOD Entity", "注册品类", "注册的 supplier/vendor 类型", "备注", "逾期"]
     return disp[[c for c in cols if c in disp.columns]]
 
@@ -286,14 +315,41 @@ def render_supplier_list(lang: str | None = None, current_actor: str | None = No
         selection_mode="single-row",
         key="supplier_table",
         column_config={
+            # Frozen columns: 公司名称 and 国家 always stay visible on the left when scrolling
             "ID": st.column_config.NumberColumn(width="small"),
+            "公司名称": st.column_config.TextColumn(
+                "公司名称",
+                width="medium",
+                frozen=True,  # Freeze / pin to left
+            ),
+            "国家": st.column_config.TextColumn(
+                "国家",
+                width="small",
+                frozen=True,  # Freeze / pin to left
+            ),
+            "平台": st.column_config.TextColumn(width="small"),
+            "状态": st.column_config.TextColumn(
+                "状态",
+                width="large",
+                help="颜色区分：🔵 In Progress/进行中 | 🟢 Approved/已批准 | 🟠 Documents Submitted/资料已提交 | 其他状态按语义着色；逾期以 🔴 红色高亮前缀显示",
+            ),
             "截止日期": st.column_config.TextColumn(width="medium"),
+            # 备注 column: truncated display + tooltip guidance for full content on hover
             "备注": st.column_config.TextColumn(
                 "备注",
                 width="medium",
-                help="备注内容较长时会自动截断显示（最多35字），将鼠标悬停在单元格上可查看完整内容",
+                help="仅显示前25字符 + \"...\"（空则显示“—”）。鼠标悬停单元格可查看完整备注内容。",
             ),
-            "逾期": st.column_config.TextColumn(width="small"),
+            "负责人": st.column_config.TextColumn(width="small"),
+            "逾期": st.column_config.TextColumn(
+                "逾期",
+                width="small",
+                help="逾期项使用红色高亮（🔴 逾期）",
+            ),
+            # Other dynamic columns keep default styling
+            "CNOOD Entity": st.column_config.TextColumn(width="small"),
+            "注册品类": st.column_config.TextColumn(width="small"),
+            "注册的 supplier/vendor 类型": st.column_config.TextColumn(width="small"),
         },
     )
 
