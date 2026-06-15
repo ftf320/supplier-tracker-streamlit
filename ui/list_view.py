@@ -95,31 +95,48 @@ def _apply_filters(
 
 def _prepare_display_df(df: pd.DataFrame, lang: str) -> pd.DataFrame:
     """Create a nice dataframe for st.dataframe with display columns.
-    Company name is now a single unified field (merged input).
+    All display column names are now fetched via t() for full bilingual support.
+    Internal DB columns (e.g. "notes", "cnood_entity") remain English for data access.
     """
+    # --- Translated display labels (used for both DF columns and column_config) ---
+    company_label = t("company_name", lang)
+    country_label = t("country", lang)
+    platform_label = t("platform", lang)
+    status_label = t("status", lang)
+    deadline_label = t("deadline", lang)
+    owner_label = t("owner", lang)
+    notes_label = t("notes", lang)
+    overdue_label = t("overdue", lang)
+    cnood_label = t("cnood_entity", lang)
+    reg_cat_label = t("registration_category", lang)
+    vendor_type_label = t("supplier_vendor_type", lang)
+
     if df.empty:
-        return pd.DataFrame(columns=["ID", "公司名称", "国家", "平台", "状态", "截止日期", "负责人", "CNOOD Entity", "注册品类", "注册的 supplier/vendor 类型", "备注", "逾期"])
+        return pd.DataFrame(columns=[
+            "ID", company_label, country_label, platform_label, status_label,
+            deadline_label, owner_label, cnood_label, reg_cat_label,
+            vendor_type_label, notes_label, overdue_label
+        ])
 
     disp = pd.DataFrame()
     disp["ID"] = df["id"]
 
     # Single company name (prefer cn, fallback to en for legacy data)
-    disp["公司名称"] = df.apply(
+    disp[company_label] = df.apply(
         lambda r: (r.get("company_name_cn") or r.get("company_name_en") or "").strip(),
         axis=1,
     )
 
-    disp["国家"] = df.get("country", "").fillna("")
-    disp["平台"] = df["platform"]
-    disp["提交日期"] = df["submission_date"].apply(lambda d: format_date(d))
-    disp["截止日期"] = df["deadline"].apply(lambda d: format_date(d))
+    disp[country_label] = df.get("country", "").fillna("")
+    disp[platform_label] = df["platform"]
+    disp[deadline_label] = df["deadline"].apply(lambda d: format_date(d))
 
-    disp["负责人"] = df.get("owner", df.get("contact_name", "")).fillna("")
+    disp[owner_label] = df.get("owner", df.get("contact_name", "")).fillna("")
 
-    # New fields
-    disp["CNOOD Entity"] = df.get("cnood_entity", "").fillna("")
-    disp["注册品类"] = df.get("registration_category", "").fillna("")
-    disp["注册的 supplier/vendor 类型"] = df.get("supplier_vendor_type", "").fillna("")
+    # New fields (now using translated labels)
+    disp[cnood_label] = df.get("cnood_entity", "").fillna("")
+    disp[reg_cat_label] = df.get("registration_category", "").fillna("")
+    disp[vendor_type_label] = df.get("supplier_vendor_type", "").fillna("")
 
     # 备注 (notes) optimization:
     # - Show only first 25 characters + "..." 
@@ -130,7 +147,7 @@ def _prepare_display_df(df: pd.DataFrame, lang: str) -> pd.DataFrame:
         if not n:
             return "—"
         return n[:25] + "..." if len(n) > 25 else n
-    disp["备注"] = notes.apply(_format_remarks)
+    disp[notes_label] = notes.apply(_format_remarks)
 
     # Status with semantic colors (using emojis for visual distinction via column_config display)
     # + Overdue red highlight (prepended red indicator)
@@ -153,17 +170,18 @@ def _prepare_display_df(df: pd.DataFrame, lang: str) -> pd.DataFrame:
         # Other statuses keep the original emoji coloring from get_status_display
         return base_display
 
-    disp["状态"] = df.apply(_format_status_with_colors, axis=1)
+    disp[status_label] = df.apply(_format_status_with_colors, axis=1)
 
-    # Overdue flag (kept for quick visual scan, now complemented by red status prefix)
-    disp["逾期"] = df.apply(
-        lambda r: "🔴 逾期" if is_overdue(r.get("deadline"), r.get("status", "")) else "",
+    # Overdue flag (simple indicator; header provides the translated label)
+    disp[overdue_label] = df.apply(
+        lambda r: "🔴" if is_overdue(r.get("deadline"), r.get("status", "")) else "",
         axis=1,
     )
 
     # Reorder for clarity
-    # Note: 公司名称 and 国家 are placed early so pinned=True in column_config works well
-    cols = ["ID", "公司名称", "国家", "平台", "状态", "截止日期", "负责人", "CNOOD Entity", "注册品类", "注册的 supplier/vendor 类型", "备注", "逾期"]
+    # Note: company_name and country are placed early so pinned=True (frozen) in column_config works well
+    cols = ["ID", company_label, country_label, platform_label, status_label, deadline_label,
+            owner_label, cnood_label, reg_cat_label, vendor_type_label, notes_label, overdue_label]
     return disp[[c for c in cols if c in disp.columns]]
 
 
@@ -230,13 +248,14 @@ def render_supplier_list(lang: str | None = None, current_actor: str | None = No
                         del st.session_state[k]
                 st.rerun()
 
-    # --- Additional filters for new fields (CNOOD Entity, 注册品类, supplier/vendor type) ---
+    # --- Additional filters for new fields (CNOOD Entity / 注册品类 / Supplier/Vendor Type) ---
+    # Labels now come from t() so they switch with language
     with st.container():
         nf1, nf2, nf3 = st.columns(3)
         with nf1:
             all_cnood = sorted(full_df.get("cnood_entity", pd.Series(dtype=str)).dropna().unique().tolist()) if not full_df.empty else []
             cnood_entities = st.multiselect(
-                "CNOOD Entity",
+                t("cnood_entity", lang),
                 options=all_cnood,
                 default=[],
                 key="list_cnood",
@@ -244,7 +263,7 @@ def render_supplier_list(lang: str | None = None, current_actor: str | None = No
         with nf2:
             all_reg = sorted(full_df.get("registration_category", pd.Series(dtype=str)).dropna().unique().tolist()) if not full_df.empty else []
             registration_categories = st.multiselect(
-                "注册品类",
+                t("registration_category", lang),
                 options=all_reg,
                 default=[],
                 key="list_reg_cat",
@@ -252,7 +271,7 @@ def render_supplier_list(lang: str | None = None, current_actor: str | None = No
         with nf3:
             all_vtype = sorted(full_df.get("supplier_vendor_type", pd.Series(dtype=str)).dropna().unique().tolist()) if not full_df.empty else []
             supplier_vendor_types = st.multiselect(
-                "注册的 supplier/vendor 类型",
+                t("supplier_vendor_type", lang),
                 options=all_vtype,
                 default=[],
                 key="list_vtype",
@@ -307,6 +326,20 @@ def render_supplier_list(lang: str | None = None, current_actor: str | None = No
 
     st.caption(t("select_row_hint", lang))
 
+    # Re-compute translated column labels so column_config keys exactly match the columns in filtered_df
+    # (DF column names are language-dependent when using t())
+    company_label = t("company_name", lang)
+    country_label = t("country", lang)
+    platform_label = t("platform", lang)
+    status_label = t("status", lang)
+    deadline_label = t("deadline", lang)
+    owner_label = t("owner", lang)
+    notes_label = t("notes", lang)
+    overdue_label = t("overdue", lang)
+    cnood_label = t("cnood_entity", lang)
+    reg_cat_label = t("registration_category", lang)
+    vendor_type_label = t("supplier_vendor_type", lang)
+
     event = st.dataframe(
         filtered_df,
         use_container_width=True,
@@ -315,41 +348,41 @@ def render_supplier_list(lang: str | None = None, current_actor: str | None = No
         selection_mode="single-row",
         key="supplier_table",
         column_config={
-            # Pinned columns: 公司名称 and 国家 always stay visible on the left when scrolling
+            # Pinned / frozen columns: Company Name and Country stay visible on the left
             "ID": st.column_config.NumberColumn(width="small"),
-            "公司名称": st.column_config.TextColumn(
-                "公司名称",
+            company_label: st.column_config.TextColumn(
+                company_label,
                 width="medium",
                 pinned=True,  # Freeze / pin to left
             ),
-            "国家": st.column_config.TextColumn(
-                "国家",
+            country_label: st.column_config.TextColumn(
+                country_label,
                 width="small",
                 pinned=True,  # Freeze / pin to left
             ),
-            "平台": st.column_config.TextColumn(width="small"),
-            "状态": st.column_config.TextColumn(
-                "状态",
+            platform_label: st.column_config.TextColumn(width="small"),
+            status_label: st.column_config.TextColumn(
+                status_label,
                 width="large",
-                help="颜色区分：🔵 In Progress/进行中 | 🟢 Approved/已批准 | 🟠 Documents Submitted/资料已提交 | 其他状态按语义着色；逾期以 🔴 红色高亮前缀显示",
+                help=t("status_help", lang),
             ),
-            "截止日期": st.column_config.TextColumn(width="medium"),
-            # 备注 column: truncated display + tooltip guidance for full content on hover
-            "备注": st.column_config.TextColumn(
-                "备注",
+            deadline_label: st.column_config.TextColumn(width="medium"),
+            # Notes column: truncated display + tooltip guidance for full content on hover
+            notes_label: st.column_config.TextColumn(
+                notes_label,
                 width="medium",
-                help="仅显示前25字符 + \"...\"（空则显示“—”）。鼠标悬停单元格可查看完整备注内容。",
+                help=t("notes_help", lang),
             ),
-            "负责人": st.column_config.TextColumn(width="small"),
-            "逾期": st.column_config.TextColumn(
-                "逾期",
+            owner_label: st.column_config.TextColumn(width="small"),
+            overdue_label: st.column_config.TextColumn(
+                overdue_label,
                 width="small",
-                help="逾期项使用红色高亮（🔴 逾期）",
+                help=t("overdue_help", lang),
             ),
-            # Other dynamic columns keep default styling
-            "CNOOD Entity": st.column_config.TextColumn(width="small"),
-            "注册品类": st.column_config.TextColumn(width="small"),
-            "注册的 supplier/vendor 类型": st.column_config.TextColumn(width="small"),
+            # Other dynamic columns (new fields) keep default styling
+            cnood_label: st.column_config.TextColumn(width="small"),
+            reg_cat_label: st.column_config.TextColumn(width="small"),
+            vendor_type_label: st.column_config.TextColumn(width="small"),
         },
     )
 

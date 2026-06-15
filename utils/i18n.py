@@ -167,6 +167,16 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "last_updated": "最后更新",
         "view_detail": "查看详情",
         "company_name": "公司名称",
+        "platform": "平台",
+        "status": "状态",
+        "deadline": "截止日期",
+        "notes": "备注",
+        "overdue": "逾期",
+
+        # List table column help / tooltips
+        "status_help": "颜色区分：🔵 进行中/In Progress | 🟢 已批准/Approved | 🟠 资料已提交/Documents Submitted | 其他按语义；逾期以 🔴 红色高亮前缀",
+        "notes_help": "仅显示前25字符 + \"...\"（空则显示“—”）。鼠标悬停单元格可查看完整备注内容。",
+        "overdue_help": "逾期项使用红色高亮（🔴）",
 
         # Form additions
         "country_label": "国家 *",
@@ -341,7 +351,17 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "country": "Country",
         "last_updated": "Last Updated",
         "view_detail": "View Detail",
-        "company_name": "Company",
+        "company_name": "Company Name",
+        "platform": "Platform",
+        "status": "Status",
+        "deadline": "Deadline",
+        "notes": "Notes",
+        "overdue": "Overdue",
+
+        # List table column help / tooltips
+        "status_help": "Color legend: 🔵 In Progress | 🟢 Approved | 🟠 Documents Submitted | others semantic; Overdue highlighted with 🔴 red prefix",
+        "notes_help": "Shows first 25 chars + \"...\" (empty shows \"—\"). Hover cell to see full notes content.",
+        "overdue_help": "Overdue rows highlighted in red (🔴)",
 
         # Form additions
         "country_label": "Country *",
