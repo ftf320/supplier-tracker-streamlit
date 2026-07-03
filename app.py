@@ -16,7 +16,6 @@ from ui.list_view import render_supplier_list
 from ui.form import show_add_dialog
 from ui.detail import show_detail_dialog  # new rich detail
 from utils.i18n import t, get_lang, set_lang
-from utils.constants import ACTORS
 import os
 
 # ------------------------------------------------------------------
@@ -90,45 +89,6 @@ def sidebar() -> None:
         if lang_choice != lang:
             set_lang(lang_choice)
             st.rerun()
-
-        st.markdown("---")
-
-        # === Current Actor (team collaboration simulation) ===
-        st.markdown(f"**{t('current_actor', lang)}**")
-        st.caption(t("current_actor_help", lang))
-
-        current_actor = st.session_state.get("current_actor", ACTORS[0])
-        actor_options = ACTORS + [t("actor_custom", lang)]
-        # Find index
-        try:
-            default_idx = actor_options.index(current_actor) if current_actor in actor_options else 0
-        except Exception:
-            default_idx = 0
-
-        actor_choice = st.selectbox(
-            t("actor_label", lang),
-            options=actor_options,
-            index=default_idx,
-            key="actor_select",
-            label_visibility="collapsed",
-        )
-
-        if actor_choice == t("actor_custom", lang):
-            custom = st.text_input(
-                "自定义姓名 - 角色",
-                value=current_actor if current_actor not in ACTORS else "",
-                key="actor_custom_input",
-                placeholder="例如：小王 - 财务",
-            )
-            if custom and custom.strip():
-                st.session_state["current_actor"] = custom.strip()
-            else:
-                st.session_state["current_actor"] = ACTORS[0]
-        else:
-            st.session_state["current_actor"] = actor_choice
-
-        current_actor = st.session_state.get("current_actor", ACTORS[0])
-        st.caption(f"✅ {current_actor}")
 
         st.markdown("---")
 
@@ -208,31 +168,30 @@ def main() -> None:
     # === 以下为原有功能（只有登录成功后才会执行） ===
     sidebar()
     lang = get_lang()
-    current_actor = st.session_state.get("current_actor", "李娜 - 采购经理")
 
     page = st.session_state.get("page", "dashboard")
 
     if page == "dashboard":
-        render_dashboard(lang, current_actor=current_actor)
+        render_dashboard(lang)
     elif page == "list":
-        render_supplier_list(lang, current_actor=current_actor)
+        render_supplier_list(lang)
     elif page == "add":
         # Show prominent add form + also offer direct dialog button
         st.title(t("add_supplier", lang))
-        st.info("点击下方按钮打开添加表单（新供应商默认负责人为当前操作人）。附件与评论请在「供应商列表 → 查看详情」中管理。")
+        st.info("新供应商默认负责人为固定操作人。附件、评论、状态记录请在「供应商列表 → 查看详情」中管理。")
         if st.button("➕ 打开添加表单 / Open Add Form", type="primary"):
-            show_add_dialog(lang, current_actor=current_actor)
+            show_add_dialog(lang)
         st.markdown("---")
         st.caption("提示：添加后请到「供应商列表」中选择该行，点击「查看详情」进行文件上传、团队评论和可视化步骤推进。")
     else:
-        render_dashboard(lang, current_actor=current_actor)
+        render_dashboard(lang)
 
     # Global help / footer note
     with st.expander("使用提示 / Tips", expanded=False):
         st.markdown(
             """
             - 程序启动时为**完全干净状态**（不再自动生成示例数据）。
-            - 左侧「当前操作人」选择器用于模拟团队协作（评论、附件上传、默认负责人均使用该人）。
+            - 当前操作人固定为 “Stella - 注册”（评论、附件上传、负责人、状态记录均使用此人）。
             - 左侧「数据管理」区域有「🗑️ 清空所有数据」按钮，可一键删除所有记录和上传文件（保留数据库结构）。
             - 所有数据与附件均保存在本地 `data/` 目录，可随时备份整个文件夹。
             - 在「供应商列表」选中一行后点击「查看详情」，使用可视化步骤器推进状态、上传文件（支持拖拽）、发布团队评论。

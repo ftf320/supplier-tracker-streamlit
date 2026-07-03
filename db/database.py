@@ -13,7 +13,7 @@ import pandas as pd
 import streamlit as st
 from supabase import create_client, Client
 
-from utils.constants import STATUSES, PLATFORMS, TERMINAL_STATUSES, COUNTRIES, ACTORS
+from utils.constants import STATUSES, PLATFORMS, TERMINAL_STATUSES, COUNTRIES
 
 # Use centralized cached client to avoid duplication and circular imports
 from db.supabase_client import get_supabase_client

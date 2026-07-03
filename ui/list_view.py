@@ -26,7 +26,7 @@ from utils.helpers import (
     delete_all_attachments_for_supplier,  # now handles Supabase Storage too
 )
 from utils.i18n import t, get_lang
-from utils.constants import STATUSES, COUNTRIES
+from utils.constants import STATUSES, COUNTRIES, FIXED_ACTOR
 
 
 def _apply_filters(
@@ -185,9 +185,10 @@ def _prepare_display_df(df: pd.DataFrame, lang: str) -> pd.DataFrame:
     return disp[[c for c in cols if c in disp.columns]]
 
 
-def render_supplier_list(lang: str | None = None, current_actor: str | None = None) -> None:
+def render_supplier_list(lang: str | None = None) -> None:
     lang = lang or get_lang()
-    actor = current_actor or "李娜 - 采购经理"
+    # Fixed actor for all attribution
+    actor = FIXED_ACTOR
     inject_global_css()
 
     st.title(t("list_title", lang))
@@ -288,7 +289,7 @@ def render_supplier_list(lang: str | None = None, current_actor: str | None = No
     btn_col1, btn_spacer, btn_col2 = st.columns([1.4, 3.2, 1.6])
     with btn_col1:
         if st.button("➕ " + t("add_supplier", lang), type="primary", use_container_width=True):
-            show_add_dialog(lang, current_actor=actor)
+            show_add_dialog(lang)
 
     with btn_col2:
         # Export current (respects active filters)
@@ -423,11 +424,11 @@ def render_supplier_list(lang: str | None = None, current_actor: str | None = No
             a1, a2, a3, a4 = st.columns(4)
             with a1:
                 if st.button("📋 " + t("view_detail", lang), type="primary", use_container_width=True, key=f"detail_{selected_id}"):
-                    show_detail_dialog(selected_id, current_actor=actor, lang=lang)
+                    show_detail_dialog(selected_id, lang=lang)
 
             with a2:
                 if st.button("✏️ " + t("edit_details", lang), use_container_width=True, key=f"edit_{selected_id}"):
-                    show_edit_dialog(selected_id, lang=lang, current_actor=actor)
+                    show_edit_dialog(selected_id, lang=lang)
 
             with a3:
                 # Quick status (still useful)

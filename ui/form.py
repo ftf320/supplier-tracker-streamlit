@@ -22,7 +22,7 @@ from ui.components import (
     render_status_badge,
     render_overdue_warning,
 )
-from utils.constants import STATUSES, PLATFORMS, ACTORS
+from utils.constants import STATUSES, PLATFORMS, FIXED_ACTOR
 from utils.helpers import (
     format_date,
     upload_file_to_storage as save_uploaded_file,  # Supabase Storage version
@@ -56,10 +56,10 @@ def _platform_select_widget(default: str = "", key: str = "platform") -> str:
 
 
 @st.dialog("➕ 添加新供应商 / Add New Supplier")
-def _add_dialog_impl(lang: str, current_actor: str | None = None) -> None:
+def _add_dialog_impl(lang: str) -> None:
     """Internal dialog implementation."""
     inject_global_css()
-    actor = current_actor or "李娜 - 采购经理"
+    actor = FIXED_ACTOR
 
     with st.form("add_supplier_form", clear_on_submit=False):
         # Merged company name field (single input supporting Chinese or English)
@@ -165,12 +165,11 @@ def _add_dialog_impl(lang: str, current_actor: str | None = None) -> None:
 
 
 @st.dialog("✏️ 编辑供应商 / Edit Supplier")
-def _edit_dialog_impl(supplier_id: int, lang: str, current_actor: str | None = None) -> None:
+def _edit_dialog_impl(supplier_id: int, lang: str) -> None:
     """Edit dialog with attachments + full history (basic fields only; rich collab is in Detail View)."""
     inject_global_css()
-    actor = current_actor or supplier.get("owner") or "李娜 - 采购经理" if 'supplier' in locals() else "李娜 - 采购经理"
-
     supplier = get_supplier(supplier_id)
+    actor = FIXED_ACTOR  # always use fixed for new actions/uploads in this session
     if not supplier:
         st.error("Supplier not found")
         return
@@ -405,13 +404,13 @@ def _parse_date_or_none(dstr: Optional[str]) -> Optional[date]:
 
 # Public entry points ---------------------------------------------------------
 
-def show_add_dialog(lang: str | None = None, current_actor: str | None = None) -> None:
+def show_add_dialog(lang: str | None = None) -> None:
     """Open the add supplier dialog."""
     lang = lang or get_lang()
-    _add_dialog_impl(lang, current_actor)
+    _add_dialog_impl(lang)
 
 
-def show_edit_dialog(supplier_id: int, lang: str | None = None, current_actor: str | None = None) -> None:
+def show_edit_dialog(supplier_id: int, lang: str | None = None) -> None:
     """Open the edit dialog for a supplier."""
     lang = lang or get_lang()
-    _edit_dialog_impl(supplier_id, lang, current_actor)
+    _edit_dialog_impl(supplier_id, lang)

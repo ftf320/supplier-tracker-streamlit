@@ -82,9 +82,8 @@ def _get_recent_activity(limit: int = 8) -> list[dict]:
     return all_events[:limit]
 
 
-def render_dashboard(lang: str | None = None, current_actor: str | None = None) -> None:
+def render_dashboard(lang: str | None = None) -> None:
     lang = lang or get_lang()
-    _ = current_actor  # currently only used for future personalization
     inject_global_css()
 
     st.title(t("dashboard_title", lang))

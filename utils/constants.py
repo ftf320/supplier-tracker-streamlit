@@ -46,13 +46,9 @@ COUNTRIES: list[str] = [
     "Other",
 ]
 
-# === Team actors for collaboration simulation (Current Actor picker) ===
-# Format: "姓名 - 角色" so it is immediately usable as owner / author / uploaded_by
-ACTORS: list[str] = [
-    "Stella - 注册",
-    "Jenny - 注册",
-    "Belinda - 注册",
-]
+# === Fixed actor (simplified from previous Current Actor picker) ===
+# All comments, uploads, owner defaults, and status notes now use this single fixed value.
+FIXED_ACTOR: str = "Stella - 注册"
 
 # Professional color palette for status badges (hex) — updated for new statuses
 STATUS_COLORS: dict[str, str] = {

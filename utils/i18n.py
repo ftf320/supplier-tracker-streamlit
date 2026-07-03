@@ -130,10 +130,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "seed_confirm": "这将清空当前所有数据并重新插入演示供应商。确定继续？",
 
         # === New v2 keys (actor, stepper, comments, detail, KPIs, countries) ===
-        "current_actor": "当前操作人",
-        "current_actor_help": "选择后，评论、附件上传、默认负责人将使用此人（模拟团队协作）",
-        "actor_custom": "其他 / 自定义输入",
-        "actor_label": "当前操作人 / Current Actor",
+        # current_actor selector removed (now fixed to Stella - 注册)
 
         # Dashboard KPIs (exact spec labels)
         "in_progress_count": "进行中",
@@ -181,7 +178,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # Form additions
         "country_label": "国家 *",
         "owner_label": "内部负责人",
-        "owner_placeholder": "默认使用当前操作人，可修改",
+        "owner_placeholder": "默认使用 Stella - 注册（固定操作人）",
         "cnood_entity": "CNOOD Entity",
         "registration_category": "注册品类",
         "supplier_vendor_type": "注册的 supplier/vendor 类型",
@@ -315,10 +312,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "seed_confirm": "This will DELETE all current data and insert fresh demo suppliers. Continue?",
 
         # === New v2 keys (actor, stepper, comments, detail, KPIs, countries) ===
-        "current_actor": "Current Actor",
-        "current_actor_help": "Comments, file uploads and default owner will use this person (team simulation)",
-        "actor_custom": "Other / Custom",
-        "actor_label": "Current Actor / 当前操作人",
+        # current_actor selector removed (now fixed to Stella - 注册)
 
         # Dashboard KPIs (exact spec labels)
         "in_progress_count": "In Progress",
@@ -366,7 +360,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # Form additions
         "country_label": "Country *",
         "owner_label": "Internal Owner",
-        "owner_placeholder": "Defaults to current actor (editable)",
+        "owner_placeholder": "Defaults to Stella - 注册 (fixed operator)",
         "cnood_entity": "CNOOD Entity",
         "registration_category": "Registration Category",
         "supplier_vendor_type": "Supplier/Vendor Type",

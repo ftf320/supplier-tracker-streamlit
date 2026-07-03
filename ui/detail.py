@@ -5,7 +5,7 @@ Opened from the list as a large st.dialog.
 Contains:
 - Visual clickable workflow stepper (Not Started → ... → Approved + terminals)
 - File upload area (multi + drag & drop hint) + list with uploaded_by + download/delete
-- Team Comments (post with current_actor as author)
+- Team Comments (post with fixed "Stella - 注册" as author)
 - Unified Activity feed (status_history + comments combined, time-sorted)
 """
 
@@ -32,7 +32,7 @@ from ui.components import (
     render_status_badge,
     render_overdue_warning,
 )
-from utils.constants import STATUSES, get_status_label
+from utils.constants import STATUSES, get_status_label, FIXED_ACTOR
 from utils.helpers import (
     upload_file_to_storage as save_uploaded_file,  # Supabase Storage
     get_file_bytes,
@@ -62,7 +62,7 @@ def _format_ts(ts: str) -> str:
         return str(ts)[:16]
 
 
-def _render_stepper(current_status: str, supplier_id: int, lang: str, current_actor: str) -> None:
+def _render_stepper(current_status: str, supplier_id: int, lang: str) -> None:
     """Horizontal visual stepper with clickable non-terminal steps."""
     inject_global_css()
 
@@ -154,7 +154,7 @@ def _render_stepper(current_status: str, supplier_id: int, lang: str, current_ac
                     # Advance
                     note = st.session_state.get(f"step_note_{supplier_id}", "")
                     try:
-                        change_status(supplier_id, step, note=note or f"通过步骤器推进 by {current_actor}")
+                        change_status(supplier_id, step, note=note or f"通过步骤器推进 by {FIXED_ACTOR}")
                         st.success(t("save_success", lang))
                         st.rerun()
                     except Exception as ex:
@@ -185,7 +185,7 @@ def _render_stepper(current_status: str, supplier_id: int, lang: str, current_ac
             ):
                 note = st.session_state.get(f"step_note_{supplier_id}", "")
                 try:
-                    change_status(supplier_id, term, note=note or f"设置为 {term} by {current_actor}")
+                    change_status(supplier_id, term, note=note or f"设置为 {term} by {FIXED_ACTOR}")
                     st.rerun()
                 except Exception as ex:
                     st.error(str(ex))
@@ -198,7 +198,7 @@ def _render_stepper(current_status: str, supplier_id: int, lang: str, current_ac
     )
 
 
-def _render_files_section(supplier_id: int, lang: str, current_actor: str) -> None:
+def _render_files_section(supplier_id: int, lang: str) -> None:
     st.markdown(f"#### {t('files_section', lang)}")
     st.caption(t("upload_hint", lang) + " · " + t("drag_drop_support", lang))
 
@@ -250,7 +250,7 @@ def _render_files_section(supplier_id: int, lang: str, current_actor: str) -> No
             for uf in uploaded_files:
                 try:
                     orig, rel = save_uploaded_file(uf, supplier_id)
-                    add_attachment(supplier_id, orig, rel, uploaded_by=current_actor)
+                    add_attachment(supplier_id, orig, rel, uploaded_by=FIXED_ACTOR)
                     added += 1
                 except Exception as ex:
                     st.error(f"Failed: {ex}")
@@ -259,7 +259,7 @@ def _render_files_section(supplier_id: int, lang: str, current_actor: str) -> No
                 st.rerun()
 
 
-def _render_comments_section(supplier_id: int, lang: str, current_actor: str) -> None:
+def _render_comments_section(supplier_id: int, lang: str) -> None:
     st.markdown(f"#### {t('team_comments', lang)}")
 
     comments = get_comments(supplier_id)
@@ -275,7 +275,7 @@ def _render_comments_section(supplier_id: int, lang: str, current_actor: str) ->
 
     if posted and content and content.strip():
         try:
-            add_comment(supplier_id, current_actor, content.strip())
+            add_comment(supplier_id, FIXED_ACTOR, content.strip())
             st.success("评论已发布")
             st.rerun()
         except Exception as ex:
@@ -362,7 +362,7 @@ def _render_unified_activity(supplier_id: int, lang: str) -> None:
 
 
 @st.dialog("📋 注册详情 / Supplier Registration Detail")
-def _detail_dialog_impl(supplier_id: int, current_actor: str, lang: str) -> None:
+def _detail_dialog_impl(supplier_id: int, lang: str) -> None:
     inject_global_css()
 
     supplier = get_supplier(supplier_id)
@@ -396,7 +396,7 @@ def _detail_dialog_impl(supplier_id: int, current_actor: str, lang: str) -> None
 
     # Stepper
     st.markdown(f"**{t('visual_stepper', lang)}** · {t('click_to_advance', lang)}")
-    _render_stepper(supplier.get("status", ""), supplier_id, lang, current_actor)
+    _render_stepper(supplier.get("status", ""), supplier_id, lang)
 
     st.markdown("---")
 
@@ -404,10 +404,10 @@ def _detail_dialog_impl(supplier_id: int, current_actor: str, lang: str) -> None
     left, right = st.columns([1.05, 1])
 
     with left:
-        _render_files_section(supplier_id, lang, current_actor)
+        _render_files_section(supplier_id, lang)
 
     with right:
-        _render_comments_section(supplier_id, lang, current_actor)
+        _render_comments_section(supplier_id, lang)
 
     st.markdown("---")
 
@@ -421,8 +421,7 @@ def _detail_dialog_impl(supplier_id: int, current_actor: str, lang: str) -> None
 
 # Public API ---------------------------------------------------------
 
-def show_detail_dialog(supplier_id: int, current_actor: str | None = None, lang: str | None = None) -> None:
+def show_detail_dialog(supplier_id: int, lang: str | None = None) -> None:
     """Open the rich registration detail dialog."""
     lang = lang or get_lang()
-    actor = current_actor or "李娜 - 采购经理"
-    _detail_dialog_impl(supplier_id, actor, lang)
+    _detail_dialog_impl(supplier_id, lang)
